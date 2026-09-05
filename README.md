@@ -1,6 +1,6 @@
 # Héstia
 
-> **Atribuição obrigatória:** Héstia, por Nomos Ludens — https://github.com/NomosLudens/hestia-replicavel. Consulte o arquivo [LICENSE](https://github.com/NomosLudens/hestia-replicavel/blob/master/LICENSE).
+> **Atribuição obrigatória:** Héstia, por Nomos Ludens — https://github.com/NomosLudens/hestia-replicable. Consulte o arquivo [LICENSE](https://github.com/NomosLudens/hestia-replicable/blob/master/LICENSE).
 
 **Console de observabilidade e operação controlada para uma infraestrutura distribuída de pequenos servidores e estações Linux.**
 
