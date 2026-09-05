@@ -1,5 +1,7 @@
 # Héstia
 
+> **Atribuição obrigatória:** Héstia, por Nomos Ludens — https://github.com/NomosLudens/hestia-replicavel. Consulte o arquivo [LICENSE](https://github.com/NomosLudens/hestia-replicavel/blob/master/LICENSE).
+
 **Console de observabilidade e operação controlada para uma infraestrutura distribuída de pequenos servidores e estações Linux.**
 
 Héstia resolve um problema prático: acompanhar o estado real de vários dispositivos independentes sem transformar o painel em um shell remoto genérico.
