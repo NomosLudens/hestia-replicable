@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Héstia Console — abridor local.
+# Abre a interface em modo "app" no navegador Chromium-like disponível;
+# cai para o navegador padrão do sistema (xdg-open) se nenhum existir.
+set -e
+
+URL="http://localhost:4517"
+
+if command -v google-chrome >/dev/null 2>&1; then
+  exec google-chrome --app="$URL"
+elif command -v chromium >/dev/null 2>&1; then
+  exec chromium --app="$URL"
+elif command -v chromium-browser >/dev/null 2>&1; then
+  exec chromium-browser --app="$URL"
+elif command -v brave-browser >/dev/null 2>&1; then
+  exec brave-browser --app="$URL"
+elif command -v microsoft-edge >/dev/null 2>&1; then
+  exec microsoft-edge --app="$URL"
+else
+  exec xdg-open "$URL"
+fi

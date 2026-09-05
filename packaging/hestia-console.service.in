@@ -1,0 +1,24 @@
+[Unit]
+Description=Héstia Console
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__RUNTIME_DIR__
+ExecStart=/usr/bin/env node __RUNTIME_DIR__/hestia.js
+Restart=on-failure
+RestartSec=3
+StateDirectory=hestia-console
+LogsDirectory=hestia-console
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/default/hestia-console
+User=__SERVICE_USER__
+Group=__SERVICE_GROUP__
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=-/var/lib/hestia-console -/var/log/hestia-console
+
+[Install]
+WantedBy=multi-user.target

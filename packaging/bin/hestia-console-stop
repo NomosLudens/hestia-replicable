@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Héstia Console — parada explícita do serviço local.
+set -e
+
+if command -v systemctl >/dev/null 2>&1; then
+  exec systemctl stop hestia-console.service
+fi
+
+echo "systemctl indisponível; pare o processo hestia-console manualmente." >&2
+exit 1

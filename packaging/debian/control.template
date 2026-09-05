@@ -1,0 +1,10 @@
+Package: hestia-console
+Version: __VERSION__
+Section: utils
+Priority: optional
+Architecture: __ARCH__
+Depends: nodejs, xdg-utils
+Maintainer: Estação Kaline <contato@nomosludens.ia.br>
+Description: Console local da Héstia com Chama Local embutida
+ Héstia Console é a interface local da Héstia.
+ A Chama Local mede saúde, armazenamento e serviços do servidor em modo somente leitura.

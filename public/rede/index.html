@@ -1,0 +1,885 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kaline Rede — Acesso privado à Estação Kaline</title>
+<meta name="description" content="Launcher privado da Estação Kaline para acessar Notebook, Servidor e TV Box pela rede Tailscale." />
+<link rel="icon" href="assets/kaline.png" />
+<style>
+  :root{
+    --bg:#0b0a09;
+    --bg-2:#111110;
+    --surface:#171613;
+    --surface-2:#1e1c18;
+    --line:#2a2823;
+    --line-strong:#3a3730;
+    --text:#f2ece1;
+    --text-dim:#b6ad9d;
+    --text-mute:#7a7264;
+    --orange:#ff4c1f;
+    --orange-2:#ff6a3d;
+    --copper:#b06a3b;
+    --amber:#e0a458;
+    --danger:#e5484d;
+    --ok-ring:rgba(255,76,31,.35);
+    --radius:14px;
+    --radius-sm:10px;
+    --shadow: 0 1px 0 rgba(255,255,255,.03) inset, 0 20px 40px -24px rgba(0,0,0,.7);
+    --font: ui-sans-serif, system-ui, -apple-system, "Inter", "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, "JetBrains Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);
+    color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(255,76,31,.08), transparent 60%),
+      radial-gradient(900px 500px at -10% 10%, rgba(176,106,59,.06), transparent 60%),
+      linear-gradient(180deg, #0a0908 0%, #0b0a09 100%);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    line-height:1.5;
+  }
+  a{color:inherit}
+  ::selection{background:rgba(255,76,31,.35);color:#fff}
+  :focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:6px}
+
+  .container{max-width:1180px;margin:0 auto;padding:28px 20px 80px}
+
+  /* Header */
+  header.hero{
+    display:flex;flex-direction:column;gap:18px;
+    padding:22px 22px;border:1px solid var(--line);
+    background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)) , var(--surface);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    position:relative;overflow:hidden;
+  }
+  header.hero::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(600px 200px at 90% 0%, rgba(255,76,31,.10), transparent 60%);
+  }
+  .brand{display:flex;align-items:center;gap:14px;min-width:0}
+  .mark{
+    width:44px;height:44px;border-radius:12px;
+    background:linear-gradient(160deg, #1a1815, #0e0d0c);
+    border:1px solid var(--line-strong);
+    display:grid;place-items:center;overflow:hidden;flex:0 0 auto;
+  }
+  .mark img{width:100%;height:100%;object-fit:cover;display:block}
+  .mark .fallback{
+    font-family:var(--mono);font-weight:700;color:var(--orange);font-size:14px;letter-spacing:.5px;
+  }
+  .wordmark{display:flex;flex-direction:column;min-width:0}
+  .wordmark .wm-img{height:22px;display:block}
+  .wordmark .wm-txt{
+    font-weight:700;letter-spacing:.14em;font-size:15px;color:var(--text);
+    text-transform:uppercase;
+  }
+  .wordmark .wm-txt em{font-style:normal;color:var(--orange)}
+  h1{font-size:clamp(26px,3.4vw,34px);margin:6px 0 0;letter-spacing:-.01em}
+  .subtitle{color:var(--text-dim);margin:0}
+  .intro{color:var(--text-dim);margin:0;max-width:66ch}
+  .warn{
+    display:flex;gap:10px;align-items:flex-start;
+    background:rgba(224,164,88,.06);
+    border:1px solid rgba(224,164,88,.25);
+    color:#f2d9ae;
+    padding:10px 12px;border-radius:var(--radius-sm);font-size:13.5px;
+  }
+  .warn svg{flex:0 0 auto;margin-top:2px}
+  .hero-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+  .hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* Buttons */
+  .btn{
+    --bh:44px;
+    appearance:none;border:1px solid var(--line-strong);
+    background:var(--surface-2);color:var(--text);
+    min-height:var(--bh);padding:10px 14px;border-radius:10px;
+    font:500 14px/1 var(--font);cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;
+    transition:transform .04s ease, background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn:hover{background:#25221d;border-color:#4a463e}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
+  .btn.primary{
+    background:linear-gradient(180deg, #ff5a2e, #e33f14);
+    border-color:#a12e0d;color:#fff;
+    box-shadow: 0 1px 0 rgba(255,255,255,.15) inset, 0 8px 22px -12px rgba(255,76,31,.7);
+  }
+  .btn.primary:hover{background:linear-gradient(180deg, #ff6a3d, #ea461a)}
+  .btn.ghost{background:transparent}
+  .btn.small{--bh:36px;padding:8px 10px;font-size:13px;border-radius:8px}
+  .btn.danger{border-color:rgba(229,72,77,.4);color:#f5b8ba}
+  .btn.danger:hover{background:rgba(229,72,77,.08)}
+
+  /* Grid */
+  section{margin-top:28px}
+  .section-head{display:flex;align-items:baseline;gap:12px;margin:0 4px 12px}
+  .section-head h2{font-size:15px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin:0;font-weight:600}
+  .section-head .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+
+  .grid{display:grid;gap:16px;grid-template-columns:1fr}
+  @media (min-width: 900px){
+    .grid.cards{grid-template-columns:repeat(3,1fr)}
+  }
+
+  /* Card */
+  .card{
+    position:relative;
+    background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)) , var(--surface);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .card .top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  .card .name{display:flex;align-items:center;gap:10px;min-width:0}
+  .card .glyph{
+    width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+    background:linear-gradient(160deg,#1c1a16,#0f0e0c);
+    border:1px solid var(--line-strong);
+    display:grid;place-items:center;color:var(--orange);
+  }
+  .card h3{margin:0;font-size:17px;letter-spacing:.01em}
+  .card .host{font-family:var(--mono);font-size:12.5px;color:var(--text-mute);margin-top:2px}
+  .card .role{color:var(--text-dim);font-size:14px;margin:0}
+  .card .status{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;color:var(--text-dim);
+    padding:5px 9px;border-radius:999px;
+    border:1px dashed var(--line-strong);background:rgba(255,255,255,.02);
+  }
+  .card .status .dot{
+    width:8px;height:8px;border-radius:50%;
+    background:transparent;border:1.5px solid var(--text-mute);
+  }
+  .card .status.ok{
+    border-style:solid;border-color:rgba(176,106,59,.5);
+    color:var(--amber);background:rgba(176,106,59,.08);
+  }
+  .card .status.ok .dot{border-color:var(--copper);background:var(--copper)}
+  .card .status.err{
+    border-style:solid;border-color:rgba(229,72,77,.4);
+    color:#f5b8ba;background:rgba(229,72,77,.06);
+  }
+  .card .status.err .dot{border-color:var(--danger);background:var(--danger)}
+  .sr-only{
+    position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;
+  }
+  .addr{
+    font-family:var(--mono);font-size:12.5px;color:var(--text-dim);
+    background:#0e0d0b;border:1px solid var(--line);
+    padding:8px 10px;border-radius:8px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .addr .muted{color:var(--text-mute);font-style:italic}
+  .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:auto}
+
+  /* Quick access */
+  .quick{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  .quick .qa{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:12px 14px;border:1px solid var(--line);border-radius:12px;
+    background:var(--surface);min-height:56px;
+  }
+  .quick .qa .l{display:flex;align-items:center;gap:10px;min-width:0}
+  .quick .qa .g{
+    width:30px;height:30px;border-radius:8px;display:grid;place-items:center;
+    background:#0f0e0c;border:1px solid var(--line-strong);color:var(--orange);flex:0 0 auto;
+  }
+  .quick .qa .t{min-width:0}
+  .quick .qa .t b{display:block;font-size:14px;font-weight:600}
+  .quick .qa .t span{font-size:12px;color:var(--text-mute)}
+
+  /* Settings */
+  details.settings{
+    border:1px solid var(--line);background:var(--surface);border-radius:var(--radius);
+    box-shadow:var(--shadow);overflow:hidden;
+  }
+  details.settings > summary{
+    list-style:none;cursor:pointer;padding:14px 18px;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  details.settings > summary::-webkit-details-marker{display:none}
+  details.settings > summary .l{display:flex;align-items:center;gap:10px}
+  details.settings > summary .chev{transition:transform .2s ease;color:var(--text-mute)}
+  details.settings[open] > summary .chev{transform:rotate(180deg)}
+  .settings-body{padding:6px 18px 18px;border-top:1px solid var(--line);display:grid;gap:20px}
+  .settings-body p.hint{color:var(--text-mute);font-size:13px;margin:12px 0 0}
+  .group{display:grid;gap:10px}
+  .group h4{margin:0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-dim);font-weight:600}
+  .field{display:grid;gap:6px}
+  .field label{font-size:13px;color:var(--text-dim)}
+  .field input{
+    width:100%;min-height:44px;padding:10px 12px;border-radius:10px;
+    background:#0e0d0b;color:var(--text);border:1px solid var(--line-strong);
+    font:400 14px/1.2 var(--mono);
+  }
+  .field input:focus{border-color:var(--orange);box-shadow:0 0 0 3px var(--ok-ring)}
+  .field input.invalid{border-color:rgba(229,72,77,.55);box-shadow:0 0 0 3px rgba(229,72,77,.18)}
+  .field input.invalid:focus{border-color:var(--danger);box-shadow:0 0 0 3px rgba(229,72,77,.28)}
+  .field .err{
+    color:#f5b8ba;font-size:12.5px;min-height:1em;
+    display:flex;align-items:center;gap:6px;
+  }
+  .field .err:empty{display:none}
+  .field .err svg{flex:0 0 auto}
+  .settings-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* Feedback */
+  .feedback{
+    position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);
+    background:#1a1814;border:1px solid var(--line-strong);color:var(--text);
+    padding:10px 14px;border-radius:999px;font-size:13.5px;
+    box-shadow:0 20px 40px -16px rgba(0,0,0,.7);
+    opacity:0;transition:opacity .18s ease, transform .18s ease;
+    pointer-events:none;z-index:50;
+  }
+  .feedback.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .feedback.warn{border-color:rgba(224,164,88,.4);background:#241d12;color:#f2d9ae}
+
+  /* Confirm dialog (smb://) */
+  .backdrop{
+    position:fixed;inset:0;background:rgba(6,5,4,.6);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;
+    padding:20px;z-index:100;
+  }
+  .backdrop.show{display:flex}
+  .modal{
+    width:100%;max-width:440px;background:var(--surface);
+    border:1px solid var(--line-strong);border-radius:var(--radius);
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.8);
+    padding:20px;display:flex;flex-direction:column;gap:14px;
+    transform:translateY(6px) scale(.985);opacity:0;
+    transition:transform .18s ease, opacity .18s ease;
+  }
+  .backdrop.show .modal{transform:none;opacity:1}
+  .modal .m-head{display:flex;gap:12px;align-items:flex-start}
+  .modal .m-ic{
+    width:36px;height:36px;flex:0 0 auto;border-radius:9px;
+    background:rgba(224,164,88,.10);border:1px solid rgba(224,164,88,.3);
+    color:#e0a458;display:grid;place-items:center;
+  }
+  .modal h3{margin:0;font-size:16px}
+  .modal p{margin:0;color:var(--text-dim);font-size:13.5px}
+  .modal .m-url{
+    font-family:var(--mono);font-size:12.5px;color:var(--text);
+    background:#0e0d0b;border:1px solid var(--line);
+    padding:8px 10px;border-radius:8px;word-break:break-all;
+  }
+  .modal .m-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+
+  footer{color:var(--text-mute);font-size:12.5px;margin-top:36px;text-align:center}
+  footer code{font-family:var(--mono);color:var(--text-dim)}
+
+  @media (max-width:520px){
+    .hero-actions{width:100%}
+    .hero-actions .btn{flex:1}
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="hero" aria-label="Kaline Rede">
+    <div class="hero-row">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <img src="assets/kaline.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'fallback',textContent:'K∧'}))" />
+        </div>
+        <div class="wordmark">
+          <img class="wm-img" src="assets/wordmark.png" alt="Kaline"
+               onerror="const s=document.createElement('span');s.className='wm-txt';s.innerHTML='K∧LINE <em>REDE</em>';this.replaceWith(s)" />
+          <h1>Kaline Rede</h1>
+          <p class="subtitle">Acesso privado à Estação Kaline</p>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn" type="button" id="btn-open-settings" aria-controls="settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9c.36.13.68.36.94.65"/></svg>
+          Configurações
+        </button>
+      </div>
+    </div>
+
+    <p class="intro">Abra as interfaces e serviços dos aparelhos da Estação pela sua rede privada.</p>
+
+    <div class="warn" role="note">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <span>Os estados ainda não são consultados automaticamente. Um endereço configurado não significa que o aparelho esteja online.</span>
+    </div>
+  </header>
+
+  <!-- Cards -->
+  <section aria-label="Aparelhos">
+    <div class="section-head"><h2>Aparelhos</h2><span class="rule"></span></div>
+    <div class="grid cards" id="cards-grid"></div>
+  </section>
+
+  <!-- Quick access -->
+  <section aria-label="Acessos rápidos">
+    <div class="section-head"><h2>Acessos rápidos</h2><span class="rule"></span></div>
+    <div class="quick" id="quick-grid"></div>
+  </section>
+
+  <!-- Settings -->
+  <section>
+    <details class="settings" id="settings">
+      <summary aria-label="Configurar acessos">
+        <span class="l">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>
+          <strong>Configurar acessos</strong>
+        </span>
+        <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </summary>
+      <div class="settings-body">
+        <p class="hint">Esses endereços ficam salvos apenas neste navegador.</p>
+
+        <div class="group">
+          <h4>Notebook · kalines-note</h4>
+          <div class="field">
+            <label for="cfg-note-hestia">URL do Héstia</label>
+            <input id="cfg-note-hestia" data-cfg="note.hestia" placeholder="https://kalines-note.<TAILNET>.ts.net" spellcheck="false" autocomplete="off" />
+            <span class="err" data-err="note.hestia" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div class="group">
+          <h4>Servidor · tonyusdev-desktop</h4>
+          <div class="field">
+            <label for="cfg-srv-station">URL do Station</label>
+            <input id="cfg-srv-station" data-cfg="srv.station" placeholder="https://tonyusdev-desktop.<TAILNET>.ts.net" spellcheck="false" autocomplete="off" />
+            <span class="err" data-err="srv.station" aria-live="polite"></span>
+          </div>
+          <div class="field">
+            <label for="cfg-srv-files">URL da pasta compartilhada</label>
+            <input id="cfg-srv-files" data-cfg="srv.files" placeholder="smb://tonyusdev-desktop.local/tailscalehd" spellcheck="false" autocomplete="off" />
+            <span class="err" data-err="srv.files" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div class="group">
+          <h4>TV Box · kaline-box</h4>
+          <div class="field">
+            <label for="cfg-tv-station">URL do Station</label>
+            <input id="cfg-tv-station" data-cfg="tv.station" placeholder="https://kaline-box.<TAILNET>.ts.net" spellcheck="false" autocomplete="off" />
+            <span class="err" data-err="tv.station" aria-live="polite"></span>
+          </div>
+          <div class="field">
+            <label for="cfg-tv-codice">Códice Web App</label>
+            <input id="cfg-tv-codice" data-cfg="tv.codice" placeholder="https://&lt;CODICE_WEB_APP&gt;" spellcheck="false" autocomplete="off" />
+            <span class="err" data-err="tv.codice" aria-live="polite"></span>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn primary" type="button" id="btn-save">Salvar neste aparelho</button>
+          <button class="btn danger" type="button" id="btn-clear">Limpar configurações</button>
+        </div>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    Estação Kaline · rede privada via Tailscale · <code>casca visual</code>
+  </footer>
+</div>
+
+<div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+<span id="wol-note" class="sr-only">Wake-on-LAN ainda não integrado. A implementação será feita posteriormente no GitHub.</span>
+
+<div class="backdrop" id="smb-backdrop" role="dialog" aria-modal="true" aria-labelledby="smb-title" aria-describedby="smb-desc" hidden>
+  <div class="modal">
+    <div class="m-head">
+      <div class="m-ic" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+      </div>
+      <div style="min-width:0">
+        <h3 id="smb-title">Abrir pasta compartilhada?</h3>
+        <p id="smb-desc">Links <code>smb://</code> dependem do sistema operacional e do navegador. Alguns navegadores podem bloquear ou ignorar a abertura.</p>
+      </div>
+    </div>
+    <div class="m-url" id="smb-url"></div>
+    <div class="m-actions">
+      <button type="button" class="btn" id="smb-cancel">Cancelar</button>
+      <button type="button" class="btn primary" id="smb-confirm">Abrir mesmo assim</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const STORAGE_KEY = "kaline-rede.config.v1";
+
+  // Machine definitions
+  const MACHINES = [
+    {
+      id: "note",
+      title: "Notebook",
+      host: "kalines-note",
+      role: "Héstia Console e ambiente principal.",
+      sshUser: "tonyus-dev",
+      addrKey: "note.hestia",
+      addrLabel: "Héstia",
+      actions: [
+        { kind:"open",  key:"note.hestia", label:"Abrir Héstia", primary:true },
+        { kind:"ssh",   cmd:"ssh tonyus-dev@kalines-note", label:"Copiar comando SSH" },
+        { kind:"copyAddr", key:"note.hestia", label:"Copiar endereço" },
+      ],
+    },
+    {
+      id: "srv",
+      title: "Servidor",
+      host: "tonyusdev-desktop",
+      role: "Arquivos e armazenamento principal.",
+      sshUser: "tonyus-dev",
+      addrKey: "srv.station",
+      addrLabel: "API Station",
+      actions: [
+        { kind:"openConsole", route:"/", label:"Abrir na Héstia", primary:true },
+        { kind:"open",  key:"srv.files",   label:"Abrir arquivos" },
+        { kind:"wol",   label:"Acordar servidor" },
+        { kind:"ssh",   cmd:"ssh tonyus-dev@tonyusdev-desktop", label:"Copiar comando SSH" },
+        { kind:"copyAddr", key:"srv.station", label:"Copiar endereço da API" },
+      ],
+    },
+    {
+      id: "tv",
+      title: "TV Box",
+      host: "kaline-box",
+      role: "Station leve e biblioteca de leitura.",
+      sshUser: "tonyus-dev",
+      addrKey: "tv.station",
+      addrLabel: "API Station",
+      actions: [
+        { kind:"openConsole", route:"/", label:"Abrir na Héstia", primary:true },
+        { kind:"open", key:"tv.codice", label:"Códice Web App", configLabel:"Configure o Códice Web App" },
+        { kind:"ssh",   cmd:"ssh tonyus-dev@kaline-box", label:"Copiar comando SSH" },
+        { kind:"copyAddr", key:"tv.station", label:"Copiar endereço da API" },
+      ],
+    },
+  ];
+
+  const QUICK = [
+    { key:"note.hestia", route:"/", label:"Héstia Console", sub:"Notebook" },
+    { key:"tv.codice", label:"Códice Web App", sub:"Aplicativo independente", configLabel:"Configure o Códice Web App" },
+    { key:"note.hestia", route:"/historico", label:"Histórico", sub:"Linha do Tempo" },
+    { key:"srv.files",   label:"Arquivos",          sub:"Servidor · pasta compartilhada" },
+  ];
+
+  const DEFAULTS = {
+    "note.hestia": "",
+    "srv.station": "",
+    "srv.files":   "",
+    "tv.station":  "",
+    "tv.codice":   "",
+  };
+
+  // ---- Storage
+  let state = load();
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return { ...DEFAULTS };
+      const parsed = JSON.parse(raw);
+      return Object.fromEntries(Object.keys(DEFAULTS).map(key => [key, typeof parsed[key] === "string" ? parsed[key] : ""]));
+    } catch { return { ...DEFAULTS }; }
+  }
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  // ---- Validation (syntax only)
+  function validate(url, key) {
+    if (!url) return { ok:true, empty:true };
+    const s = String(url).trim();
+    if (!s) return { ok:true, empty:true };
+
+    const lower = s.toLowerCase();
+    if (/^(javascript:|data:|file:|vbscript:)/i.test(lower)) {
+      return { ok:false, msg:"Esquema não permitido." };
+    }
+
+    // Accept: https://, http://localhost, http://127.0.0.1, smb://
+    const isHttps = /^https:\/\//i.test(s);
+    const isHttpLocal =
+      /^http:\/\/localhost(?::\d+)?(?:\/|$)/i.test(s) ||
+      /^http:\/\/127\.0\.0\.1(?::\d+)?(?:\/|$)/i.test(s);
+    const isSmb = /^smb:\/\//i.test(s);
+
+    if (!(isHttps || isHttpLocal || isSmb)) {
+      return { ok:false, msg:"Use https://, http://localhost, http://127.0.0.1 ou smb://." };
+    }
+
+    if (key === "tv.codice") {
+      if (isSmb) return { ok:false, msg:"O Códice Web App deve usar HTTP local ou HTTPS." };
+      try {
+        const parsed = new URL(s);
+        if (/^\/api(?:\/|$)/i.test(parsed.pathname)) {
+          return { ok:false, msg:"Use a URL do Códice Web App, não uma rota de API." };
+        }
+      } catch {
+        return { ok:false, msg:"URL do Códice Web App inválida." };
+      }
+    }
+
+    // Reject embedded credentials (user:pass@)
+    try {
+      // URL() may not parse smb:// consistently; do a manual check.
+      const afterScheme = s.replace(/^[a-z]+:\/\//i, "");
+      const hostPart = afterScheme.split("/")[0];
+      if (hostPart.includes("@")) {
+        return { ok:false, msg:"Credenciais embutidas não são permitidas." };
+      }
+    } catch {}
+
+    return { ok:true };
+  }
+
+  // ---- Feedback
+  const fb = document.getElementById("feedback");
+  let fbTimer = null;
+  function feedback(msg, variant) {
+    fb.textContent = msg;
+    fb.classList.remove("warn");
+    if (variant === "warn") fb.classList.add("warn");
+    fb.classList.add("show");
+    clearTimeout(fbTimer);
+    fbTimer = setTimeout(() => fb.classList.remove("show"), 2200);
+  }
+
+  // ---- Icons
+  function icon(name) {
+    const s = 'width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+    switch (name) {
+      case "open":   return `<svg ${s}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+      case "copy":   return `<svg ${s}><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+      case "term":   return `<svg ${s}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`;
+      case "note":   return `<svg ${s}><rect x="3" y="4" width="18" height="12" rx="2"/><line x1="7" y1="20" x2="17" y2="20"/><line x1="12" y1="16" x2="12" y2="20"/></svg>`;
+      case "srv":    return `<svg ${s}><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><line x1="7" y1="7.5" x2="7.01" y2="7.5"/><line x1="7" y1="16.5" x2="7.01" y2="16.5"/></svg>`;
+      case "tv":     return `<svg ${s}><rect x="2" y="5" width="20" height="13" rx="2"/><polyline points="8 21 12 18 16 21"/></svg>`;
+      case "book":   return `<svg ${s}><path d="M4 4h9a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4Z"/><path d="M4 4v12"/></svg>`;
+      case "folder": return `<svg ${s}><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>`;
+      case "hestia": return `<svg ${s}><path d="M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1Z"/></svg>`;
+      case "power":  return `<svg ${s}><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>`;
+      default:       return "";
+    }
+  }
+  function machineGlyph(id) {
+    return id === "note" ? icon("note") : id === "srv" ? icon("srv") : icon("tv");
+  }
+  function quickGlyph(key) {
+    if (key === "note.hestia") return icon("hestia");
+    if (key === "srv.station" || key === "tv.station") return icon("open");
+    if (key === "tv.codice") return icon("book");
+    if (key === "srv.files") return icon("folder");
+    return icon("open");
+  }
+
+  function consoleUrl(route) {
+    const base = state["note.hestia"];
+    const checked = validate(base, "note.hestia");
+    if (!base || !checked.ok || /^smb:/i.test(base)) return "";
+    try { return new URL(route, base).toString(); } catch { return ""; }
+  }
+
+  // ---- Rendering
+  const cardsGrid = document.getElementById("cards-grid");
+  const quickGrid = document.getElementById("quick-grid");
+
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+  function statusFor(value, key){
+    const raw = (value == null ? "" : String(value)).trim();
+    if (!raw) return { cls:"", label:"Não configurado", title:"Nenhum endereço configurado" };
+    const v = validate(raw, key);
+    if (v.ok) return { cls:"ok", label:"Endereço configurado", title:"Endereço configurado localmente. Não indica que o aparelho respondeu." };
+    return { cls:"err", label:"URL inválida", title:"O endereço informado não é uma URL válida." };
+  }
+  function statusHtml(key, value){
+    const s = statusFor(value, key);
+    return `<span class="status ${s.cls}" data-status-key="${key}" title="${esc(s.title)}"><span class="dot"></span>${esc(s.label)}</span>`;
+  }
+
+  function renderCards() {
+    cardsGrid.innerHTML = MACHINES.map(m => {
+      const addr = state[m.addrKey];
+      const addrLine = addr
+        ? `<div class="addr" title="${esc(addr)}">${esc(addr)}</div>`
+        : `<div class="addr"><span class="muted">Configure o endereço para acessar</span></div>`;
+
+      const actionsHtml = m.actions.map(a => {
+        if (a.kind === "openConsole") {
+          const url = consoleUrl(a.route);
+          const label = url ? a.label : "Configure a Héstia";
+          const cls = a.primary ? "btn primary" : "btn";
+          return `<button type="button" class="${cls}" data-action="openConsole" data-route="${esc(a.route)}" ${url?"":"disabled aria-disabled=\"true\""}>${icon("hestia")}<span>${esc(label)}</span></button>`;
+        }
+        if (a.kind === "open") {
+          const url = state[a.key];
+          const ok = url && validate(url, a.key).ok;
+          const label = ok ? a.label : (a.configLabel || "Configure o endereço");
+          const cls = a.primary ? "btn primary" : "btn";
+          return `<button type="button" class="${cls}" data-action="open" data-key="${a.key}" ${ok?"":"disabled aria-disabled=\"true\""}>${icon("open")}<span>${esc(label)}</span></button>`;
+        }
+        if (a.kind === "ssh") {
+          return `<button type="button" class="btn" data-action="ssh" data-cmd="${esc(a.cmd)}">${icon("term")}<span>${esc(a.label)}</span></button>`;
+        }
+        if (a.kind === "copyAddr") {
+          const url = state[a.key];
+          const disabled = url ? "" : 'disabled aria-disabled="true"';
+          return `<button type="button" class="btn" data-action="copyAddr" data-key="${a.key}" ${disabled}>${icon("copy")}<span>${esc(a.label)}</span></button>`;
+        }
+        if (a.kind === "wol") {
+          return `<button type="button" class="btn" data-action="wol" aria-describedby="wol-note">${icon("power")}<span>${esc(a.label)}</span></button>`;
+        }
+        return "";
+      }).join("");
+
+      return `
+        <article class="card" aria-label="${esc(m.title)}">
+          <div class="top">
+            <div class="name">
+              <div class="glyph" aria-hidden="true">${machineGlyph(m.id)}</div>
+              <div>
+                <h3>${esc(m.title)}</h3>
+                <div class="host">${esc(m.host)}</div>
+              </div>
+            </div>
+            ${statusHtml(m.addrKey, state[m.addrKey])}
+          </div>
+          <p class="role">${esc(m.role)}</p>
+          ${addrLine}
+          <div class="actions">${actionsHtml}</div>
+        </article>
+      `;
+    }).join("");
+  }
+
+  function renderQuick() {
+    quickGrid.innerHTML = QUICK.map(q => {
+      const url = q.route ? consoleUrl(q.route) : state[q.key];
+      const ok = url && validate(url, q.route ? "note.hestia" : q.key).ok;
+      const label = ok ? "Abrir" : (q.configLabel || "Configure o endereço");
+      return `
+        <div class="qa">
+          <div class="l">
+            <div class="g" aria-hidden="true">${quickGlyph(q.key)}</div>
+            <div class="t">
+              <b>${esc(q.label)}</b>
+              <span>${esc(q.sub)}</span>
+            </div>
+          </div>
+          <button type="button" class="btn small" data-action="${q.route ? "openConsole" : "open"}" data-key="${q.key}" ${q.route ? `data-route="${esc(q.route)}"` : ""} ${ok?"":"disabled aria-disabled=\"true\""}>${esc(label)}</button>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderAll() {
+    renderCards();
+    renderQuick();
+    // hydrate settings inputs
+    document.querySelectorAll("[data-cfg]").forEach(inp => {
+      const k = inp.getAttribute("data-cfg");
+      inp.value = state[k] || "";
+      clearError(k);
+    });
+  }
+
+  function clearError(k){
+    const el = document.querySelector(`[data-err="${k}"]`);
+    if (el) el.textContent = "";
+    const inp = document.querySelector(`[data-cfg="${k}"]`);
+    if (inp) { inp.classList.remove("invalid"); inp.removeAttribute("aria-invalid"); inp.removeAttribute("aria-describedby"); }
+  }
+  function setError(k, msg){
+    const el = document.querySelector(`[data-err="${k}"]`);
+    const inp = document.querySelector(`[data-cfg="${k}"]`);
+    if (!msg) {
+      if (el) el.textContent = "";
+      if (inp) { inp.classList.remove("invalid"); inp.removeAttribute("aria-invalid"); inp.removeAttribute("aria-describedby"); }
+      return;
+    }
+    if (el) {
+      el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><span>${String(msg).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}</span>`;
+      el.id = el.id || `err-${k.replace(/\W+/g,"-")}`;
+    }
+    if (inp) {
+      inp.classList.add("invalid");
+      inp.setAttribute("aria-invalid","true");
+      if (el && el.id) inp.setAttribute("aria-describedby", el.id);
+    }
+  }
+
+  // ---- Actions
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      // Fallback
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text; ta.setAttribute("readonly","");
+        ta.style.position="fixed"; ta.style.left="-9999px";
+        document.body.appendChild(ta); ta.select();
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        return ok;
+      } catch { return false; }
+    }
+  }
+
+  function openUrl(url, key) {
+    if (!url) return;
+    const v = validate(url, key);
+    if (!v.ok) { feedback("Endereço inválido.", "warn"); return; }
+    if (/^smb:\/\//i.test(url)) {
+      confirmSmb(url);
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  // ---- SMB confirm dialog
+  const smbBackdrop = document.getElementById("smb-backdrop");
+  const smbUrlEl = document.getElementById("smb-url");
+  const smbCancel = document.getElementById("smb-cancel");
+  const smbConfirm = document.getElementById("smb-confirm");
+  let smbPending = null;
+  let smbLastFocus = null;
+
+  function openSmbDialog() {
+    smbLastFocus = document.activeElement;
+    smbBackdrop.hidden = false;
+    requestAnimationFrame(() => smbBackdrop.classList.add("show"));
+    setTimeout(() => smbConfirm.focus(), 40);
+  }
+  function closeSmbDialog() {
+    smbBackdrop.classList.remove("show");
+    setTimeout(() => { smbBackdrop.hidden = true; }, 180);
+    smbPending = null;
+    if (smbLastFocus && typeof smbLastFocus.focus === "function") smbLastFocus.focus();
+  }
+  function confirmSmb(url) {
+    smbPending = url;
+    smbUrlEl.textContent = url;
+    openSmbDialog();
+  }
+  smbCancel.addEventListener("click", () => {
+    feedback("Abertura cancelada");
+    closeSmbDialog();
+  });
+  smbConfirm.addEventListener("click", () => {
+    const url = smbPending;
+    closeSmbDialog();
+    if (!url) return;
+    feedback("Abrir smb:// depende do sistema operacional e do navegador.", "warn");
+    window.open(url, "_blank", "noopener,noreferrer");
+  });
+  smbBackdrop.addEventListener("click", (e) => {
+    if (e.target === smbBackdrop) closeSmbDialog();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !smbBackdrop.hidden) closeSmbDialog();
+  });
+
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-action]");
+    if (!btn) return;
+    const action = btn.getAttribute("data-action");
+
+    if (action === "open") {
+      const key = btn.getAttribute("data-key");
+      openUrl(state[key], key);
+    } else if (action === "openConsole") {
+      openUrl(consoleUrl(btn.getAttribute("data-route") || "/"), "note.hestia");
+    } else if (action === "ssh") {
+      const cmd = btn.getAttribute("data-cmd");
+      const ok = await copyText(cmd);
+      feedback(ok ? "Comando copiado" : "Não foi possível copiar", ok ? "" : "warn");
+    } else if (action === "copyAddr") {
+      const key = btn.getAttribute("data-key");
+      const val = state[key];
+      if (!val) return;
+      const ok = await copyText(val);
+      feedback(ok ? "Endereço copiado" : "Não foi possível copiar", ok ? "" : "warn");
+    } else if (action === "wol") {
+      feedback("Wake-on-LAN ainda não foi integrado. A implementação será feita posteriormente no GitHub.", "warn");
+    }
+  });
+
+  // ---- Settings handlers
+  document.getElementById("btn-save").addEventListener("click", () => {
+    const inputs = document.querySelectorAll("[data-cfg]");
+    const next = { ...state };
+    let hasError = false;
+    inputs.forEach(inp => {
+      const k = inp.getAttribute("data-cfg");
+      const raw = inp.value.trim();
+      const v = validate(raw, k);
+      if (!v.ok) { setError(k, v.msg); hasError = true; }
+      else { clearError(k); next[k] = raw; }
+    });
+    if (hasError) { feedback("Verifique os endereços destacados.", "warn"); return; }
+    state = next;
+    save();
+    renderAll();
+    feedback("Configurações salvas neste aparelho");
+  });
+
+
+  document.getElementById("btn-clear").addEventListener("click", () => {
+    localStorage.removeItem(STORAGE_KEY);
+    state = { ...DEFAULTS };
+    renderAll();
+    feedback("Configurações removidas deste navegador");
+  });
+
+  // Live validation feedback (does not persist until Save)
+  document.querySelectorAll("[data-cfg]").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const k = inp.getAttribute("data-cfg");
+      const raw = inp.value.trim();
+      const v = validate(raw, k);
+      setError(k, v.ok ? "" : v.msg);
+      // Live-reflect the card status pill for this key (visual only).
+      const pill = document.querySelector(`.status[data-status-key="${k}"]`);
+      if (pill) {
+        const s = statusFor(raw, k);
+        pill.className = `status${s.cls ? " " + s.cls : ""}`;
+        pill.setAttribute("title", s.title);
+        pill.innerHTML = `<span class="dot"></span>${esc(s.label)}`;
+      }
+    });
+  });
+
+  // Settings button: open the details section and focus first field.
+  const settingsEl = document.getElementById("settings");
+  const openSettingsBtn = document.getElementById("btn-open-settings");
+  if (openSettingsBtn && settingsEl) {
+    openSettingsBtn.addEventListener("click", () => {
+      settingsEl.open = true;
+      settingsEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      const first = settingsEl.querySelector("[data-cfg]");
+      if (first) setTimeout(() => first.focus({ preventScroll: true }), 200);
+    });
+  }
+
+  // Initial render
+  renderAll();
+})();
+</script>
+</body>
+</html>

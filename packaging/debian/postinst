@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SERVICE_NAME="hestia-console"
+if [ "${HESTIA_INSTALL_TEST_MODE:-0}" = "1" ]; then
+  [ -n "${HESTIA_TEST_ROOT:-}" ] || { echo "ERRO: HESTIA_TEST_ROOT é obrigatório no teste do postinst." >&2; exit 1; }
+  SAFETY_HELPER="$HESTIA_TEST_ROOT/opt/hestia-console/scripts/install-safety.sh"
+else
+  SAFETY_HELPER="/opt/hestia-console/scripts/install-safety.sh"
+fi
+[ -f "$SAFETY_HELPER" ] || { echo "ERRO: helper de segurança ausente no runtime." >&2; exit 1; }
+# shellcheck source=/dev/null
+source "$SAFETY_HELPER"
+hestia_configure_install_paths console
+hestia_assert_runtime_target
+
+fail() { echo "ERRO: $*" >&2; exit 1; }
+NODE_BIN="$(command -v node || true)"
+[ -n "$NODE_BIN" ] || fail "node não encontrado; Héstia Console requer Node.js >=22.13.0."
+"$NODE_BIN" "$RUNTIME_DIR/scripts/require-node.mjs" || fail "Node.js >=22.13.0 é obrigatório."
+
+install -d -m 0755 -o root -g root "$(dirname -- "$ENV_FILE")"
+if [ -e "$ENV_FILE" ] || [ -L "$ENV_FILE" ]; then
+  hestia_assert_regular_config_file "$ENV_FILE"
+fi
+if [ ! -e "$ENV_FILE" ]; then
+  install -m 0600 -o root -g root /dev/null "$ENV_FILE"
+  cat > "$ENV_FILE" <<'EOF'
+# Héstia Console Configuration
+# HESTIA_DESKTOP_BASE_URL=https://<DESKTOP_PRIVADO>
+# HESTIA_DESKTOP_TOKEN=<TOKEN_DESKTOP>
+# HESTIA_TVBOX_BASE_URL=https://<TVBOX_PRIVADA>
+# HESTIA_TVBOX_TOKEN=<TOKEN_TVBOX>
+# HESTIA_MINI_BASE_URL=https://<HOST_PRIVADO_DA_MINI>
+# HESTIA_MINI_TOKEN=<TOKEN_DA_STATION>
+HESTIA_STATION_TIMEOUT_MS=5000
+HESTIA_ORGANIZER_TIMEOUT_MS=120000
+
+# Allowed Host headers (comma-separated, exact values, no wildcards)
+# HESTIA_ALLOWED_HOSTS=hestia.exemplo.ts.net,hestia.exemplo.ts.net:443
+EOF
+fi
+chown root:root "$ENV_FILE"
+chmod 0600 "$ENV_FILE"
+
+if ! getent group hestia-console >/dev/null; then addgroup --system hestia-console; fi
+if ! getent passwd hestia-console >/dev/null; then
+  adduser --system --ingroup hestia-console --no-create-home --home "$RUNTIME_DIR" --shell /usr/sbin/nologin hestia-console
+fi
+
+"$SYSTEMCTL_BIN" daemon-reload
+"$SYSTEMCTL_BIN" enable "$SERVICE_NAME.service"
+"$SYSTEMCTL_BIN" restart "$SERVICE_NAME.service"
+ACTIVE=0
+ATTEMPTS=10
+[ "${HESTIA_INSTALL_TEST_MODE:-0}" = "1" ] && ATTEMPTS=1
+for ((_attempt = 1; _attempt <= ATTEMPTS; _attempt += 1)); do
+  "$SYSTEMCTL_BIN" is-active --quiet "$SERVICE_NAME.service" && { ACTIVE=1; break; }
+  [ "$_attempt" -eq "$ATTEMPTS" ] || sleep 1
+done
+[ "$ACTIVE" -eq 1 ] || fail "serviço não ficou ativo."
+
+DOCTOR_OUTPUT=""
+if ! DOCTOR_OUTPUT="$(HESTIA_INSTALL_ROOT="$RUNTIME_DIR" HESTIA_ENV_FILE="$ENV_FILE" "$NODE_BIN" "$RUNTIME_DIR/scripts/console-doctor.mjs" --require-systemd 2>&1)"; then
+  printf '%s\n' "$DOCTOR_OUTPUT" >&2
+  fail "Console Doctor falhou."
+fi
+printf '%s\n' "$DOCTOR_OUTPUT"
+
+gtk-update-icon-cache -q /usr/share/icons/hicolor >/dev/null 2>&1 || true
+update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+
+echo "Héstia Console instalada e validada."

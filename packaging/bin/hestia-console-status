@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Héstia Console — status read-only do serviço local.
+set -e
+
+if command -v systemctl >/dev/null 2>&1; then
+  exec systemctl status hestia-console.service --no-pager
+fi
+
+echo "systemctl indisponível; verifique http://127.0.0.1:4517/api/health" >&2
+exit 1

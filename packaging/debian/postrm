@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -e
+
+systemctl daemon-reload || true
+gtk-update-icon-cache -q /usr/share/icons/hicolor || true
+update-desktop-database /usr/share/applications || true

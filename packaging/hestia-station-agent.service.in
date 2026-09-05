@@ -1,0 +1,24 @@
+[Unit]
+Description=Héstia Station Agent
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=__RUNTIME_DIR__
+ExecStart=__NODE_BIN__ __RUNTIME_DIR__/station.js
+User=__SERVICE_USER__
+Group=__SERVICE_GROUP__
+Environment=NODE_ENV=production
+EnvironmentFile=-/etc/default/hestia-station-agent
+Restart=on-failure
+RestartSec=3
+StateDirectory=hestia-station-agent
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadOnlyPaths=-/KALINE
+ReadWritePaths=-/var/lib/hestia-station-agent
+
+[Install]
+WantedBy=multi-user.target

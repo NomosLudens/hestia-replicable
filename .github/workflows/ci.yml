@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.13
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.13.0
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check shell syntax
+        run: |
+          bash -n scripts/doctor.sh
+          bash -n scripts/install.sh
+          bash -n scripts/install-safety.sh
+          bash -n scripts/install.test.sh
+          bash -n scripts/uninstall.sh
+          bash -n scripts/install-station-agent.sh
+          bash -n scripts/install-station-agent.test.sh
+          bash -n scripts/uninstall-station-agent.sh
+          bash -n scripts/build-deb.sh
+          bash -n scripts/build-deb.test.sh
+          bash -n packaging/debian/postinst
+          bash -n packaging/debian/postinst.test.sh
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run Station operational smoke
+        run: node scripts/station-smoke.mjs
+
+      - name: Run Station installer tests
+        run: bash scripts/install-station-agent.test.sh
+
+      - name: Run Console installer tests
+        run: bash scripts/install.test.sh
+
+      - name: Run Debian safety tests
+        run: |
+          bash scripts/build-deb.test.sh
+          bash packaging/debian/postinst.test.sh
+
+      - name: Verify deployment documentation uses installed Doctors
+        run: |
+          grep -Fq '/opt/hestia-console/scripts/console-doctor.mjs' docs/DEPLOYMENT.md
+          grep -Fq '/opt/hestia-station/scripts/station-doctor.mjs' docs/DEPLOYMENT.md
+          grep -Fq 'sudo systemctl restart hestia-console' docs/DEPLOYMENT.md
+          grep -Fq 'sudo systemctl restart hestia-station-agent' docs/DEPLOYMENT.md
+          grep -Fq 'sudo systemctl is-active --quiet hestia-console' docs/DEPLOYMENT.md
+          grep -Fq 'sudo systemctl is-active --quiet hestia-station-agent' docs/DEPLOYMENT.md
+          ! grep -Fq 'sudo npm run station:doctor' docs/DEPLOYMENT.md
+          ! grep -Fq 'sudo npm run doctor' docs/DEPLOYMENT.md
+          check_order() {
+            edit_line="$(grep -nF "$1" docs/DEPLOYMENT.md | head -n 1 | cut -d: -f1)"
+            restart_line="$(awk -v start="$edit_line" -v needle="$2" 'NR > start && index($0, needle) { print NR; exit }' docs/DEPLOYMENT.md)"
+            doctor_line="$(awk -v start="$restart_line" -v needle="$3" 'NR > start && index($0, needle) { print NR; exit }' docs/DEPLOYMENT.md)"
+            test -n "$edit_line" -a -n "$restart_line" -a -n "$doctor_line"
+            test "$edit_line" -lt "$restart_line" -a "$restart_line" -lt "$doctor_line"
+          }
+          check_order 'sudoedit /etc/default/hestia-console' 'sudo systemctl restart hestia-console' '/opt/hestia-console/scripts/console-doctor.mjs'
+          check_order 'sudoedit /etc/default/hestia-station-agent' 'sudo systemctl restart hestia-station-agent' '/opt/hestia-station/scripts/station-doctor.mjs'
+
+      - name: Build Debian Package
+        run: npm run build-deb
+
+      - name: Validate Console systemd unit file
+        run: |
+          UNIT_FILE="$(mktemp "$RUNNER_TEMP/hestia-console.XXXXXX.service")"
+          sed -e 's#__RUNTIME_DIR__#/opt/hestia-console#g' \
+            -e 's#__SERVICE_USER__#hestia-console#g' \
+            -e 's#__SERVICE_GROUP__#hestia-console#g' \
+            packaging/hestia-console.service.in > "$UNIT_FILE"
+          ! grep -Eq '__[A-Z_]+__' "$UNIT_FILE"
+          SYSTEMD_UNIT_PATH=packaging/:/lib/systemd/system:/usr/lib/systemd/system:/etc/systemd/system systemd-analyze verify "$UNIT_FILE"
+
+      - name: Render and validate Station Agent systemd unit file
+        run: |
+          NODE_BIN="$(command -v node)"
+          RUNTIME_DIR="/opt/hestia-station"
+          SERVICE_USER="$(id -un)"
+          SERVICE_GROUP="$(id -gn)"
+          UNIT_FILE="$(mktemp "$RUNNER_TEMP/hestia-station-agent.XXXXXX.service")"
+          sed -e "s#__NODE_BIN__#$NODE_BIN#g" \
+            -e "s#__RUNTIME_DIR__#$RUNTIME_DIR#g" \
+            -e "s#__SERVICE_USER__#$SERVICE_USER#g" \
+            -e "s#__SERVICE_GROUP__#$SERVICE_GROUP#g" \
+            packaging/hestia-station-agent.service.in > "$UNIT_FILE"
+          ! grep -Eq '__[A-Z_]+__' "$UNIT_FILE"
+          grep -Fqx "WorkingDirectory=$RUNTIME_DIR" "$UNIT_FILE"
+          grep -Fqx "ExecStart=$NODE_BIN $RUNTIME_DIR/station.js" "$UNIT_FILE"
+          grep -Eq '^User=.+$' "$UNIT_FILE"
+          grep -Eq '^Group=.+$' "$UNIT_FILE"
+          SYSTEMD_UNIT_PATH=packaging/:/lib/systemd/system:/usr/lib/systemd/system:/etc/systemd/system systemd-analyze verify "$UNIT_FILE"
