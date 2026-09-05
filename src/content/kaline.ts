@@ -35,7 +35,7 @@ export const HESTIA = {
   motto: "Héstia é o Console da TV Box. A Chama é o pulso local. Presence consulta. Kaline decide.",
   waiting: "Aguardando Chama Local",
   readonly: "Modo protegido: leitura por padrão; console somente leitura sem escrita.",
-  footer: "Héstia é o Console. Chama pulsa. Console mostra. Presence consulta.",
+  footer: "Héstia é o Console. Chama pulsa. Console mostra. Presence consulta. © 2026 Nomos Ludens — github.com/NomosLudens/hestia-replicavel",
   defaultHost: "127.0.0.1",
   defaultPort: 4517,
   desktopConfigured: false,
